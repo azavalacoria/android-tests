@@ -4,11 +4,9 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.Context
-import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
@@ -24,7 +22,10 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import com.azavalacoria.testfiles.databinding.ActivityMainBinding
+import com.azavalacoria.testfiles.helpers.ToastHelper
 import com.google.android.material.snackbar.Snackbar
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.CSVParser
 import java.io.*
 import java.net.URL
 import java.util.zip.ZipEntry
@@ -126,7 +127,7 @@ class MainActivity : AppCompatActivity() {
             }
         } else {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                downloadOpenConnection("master")
+                readCSVExample()
             } else {
                 Log.d("TAG", "No hay permiso")
             }
@@ -210,10 +211,12 @@ class MainActivity : AppCompatActivity() {
                     val dirFile = File(path)
                     Log.d("TAG", "file size: ${file.length()}")
                     file.unzip(dirFile)
+                    readCSV(dirFile.absolutePath + "/package.csv")
                 }
             } catch (error: Exception) {
                 error.printStackTrace()
-                Log.d("TAG", error.localizedMessage)
+                Log.d("TAG", error.localizedMessage.toString())
+
             }
         }.start()
     }
@@ -240,6 +243,28 @@ class MainActivity : AppCompatActivity() {
         } else {
             ""
         }
+    }
+
+    private fun readCSV(filePath: String) {
+        val file = File(filePath)
+        if (file.exists()) {
+            val fileReader = FileReader(file)
+            val br = BufferedReader(fileReader)
+            val csvParser = CSVParser(br, CSVFormat.EXCEL.withFirstRecordAsHeader())
+            val map = csvParser.headerMap
+            if (map != null) {
+                map.forEach { (key, value) -> Log.d("TAG", " $key -> $value") }
+            } else {
+                ToastHelper().showMessage(this, "Sin cabeceras")
+            }
+        } else {
+            ToastHelper().showMessage(this, "No existe el archivo")
+        }
+    }
+
+    private fun readCSVExample() {
+        val filePath = "${getStoragePath()}${Environment.DIRECTORY_DOWNLOADS}"
+        readCSV(filePath)
     }
 }
 
